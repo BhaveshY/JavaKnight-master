@@ -1,0 +1,4 @@
+<classpath>
+    <classpathentry kind="lib" path="lib/appframework-1.0.3.jar"/>
+    <!-- Add more libraries here if needed -->
+</classpath>
