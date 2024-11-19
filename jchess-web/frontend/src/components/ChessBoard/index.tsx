@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import styled from 'styled-components';
 import Square from '../Square';
 import ChessPiece from '../ChessPiece';
-import { Board, Position, PieceColor, Piece } from '../../types/game';
+import { Color, Position } from '../../types/chess';
 
 const BoardContainer = styled.div`
   display: grid;
@@ -13,8 +13,8 @@ const BoardContainer = styled.div`
 `;
 
 interface Props {
-  board: Board;
-  currentPlayer: PieceColor;
+  board: Array<Array<{ type: string; color: Color; } | null>>;
+  currentPlayer: Color;
   onMove: (from: Position, to: Position) => void;
 }
 
@@ -33,7 +33,7 @@ const ChessBoard: React.FC<Props> = ({ board, currentPlayer, onMove }) => {
     }
   };
 
-  const renderSquare = (rowIndex: number, colIndex: number, piece: Piece | null) => {
+  const renderSquare = (rowIndex: number, colIndex: number, piece: { type: string; color: Color; } | null) => {
     const position: Position = { row: rowIndex, col: colIndex };
     const isSelected = selectedSquare?.row === rowIndex && selectedSquare?.col === colIndex;
     const isLight = (rowIndex + colIndex) % 2 === 0;
@@ -58,9 +58,7 @@ const ChessBoard: React.FC<Props> = ({ board, currentPlayer, onMove }) => {
   return (
     <BoardContainer>
       {board.map((row, rowIndex) =>
-        row.map((piece, colIndex) =>
-          renderSquare(rowIndex, colIndex, piece)
-        )
+        row.map((piece, colIndex) => renderSquare(rowIndex, colIndex, piece))
       )}
     </BoardContainer>
   );

@@ -1,5 +1,6 @@
 package com.jchess.controller;
 
+import com.jchess.dto.GameDTO;
 import com.jchess.model.Game;
 import com.jchess.model.Move;
 import com.jchess.service.GameService;
@@ -17,29 +18,32 @@ public class GameController {
     private final SimpMessagingTemplate messagingTemplate;
 
     @PostMapping
-    public Game createGame(@RequestParam String whitePlayerId,
+    public GameDTO createGame(@RequestParam String whitePlayerId,
                           @RequestParam String whitePlayerName,
                           @RequestParam String blackPlayerId,
                           @RequestParam String blackPlayerName) {
-        return gameService.createGame(whitePlayerId, whitePlayerName, blackPlayerId, blackPlayerName);
+        Game game = gameService.createGame(whitePlayerId, whitePlayerName, blackPlayerId, blackPlayerName);
+        return GameDTO.fromGame(game);
     }
 
     @GetMapping("/{gameId}")
-    public Game getGame(@PathVariable String gameId) {
-        return gameService.getGame(gameId);
+    public GameDTO getGame(@PathVariable String gameId) {
+        Game game = gameService.getGame(gameId);
+        return GameDTO.fromGame(game);
     }
 
     @PostMapping("/{gameId}/start")
     public void startGame(@PathVariable String gameId) {
         gameService.startGame(gameId);
         Game game = gameService.getGame(gameId);
-        messagingTemplate.convertAndSend("/topic/games/" + gameId, game);
+        messagingTemplate.convertAndSend("/topic/games/" + gameId, GameDTO.fromGame(game));
     }
 
     @MessageMapping("/games/{gameId}/move")
     @SendTo("/topic/games/{gameId}")
-    public Game makeMove(@PathVariable String gameId, Move move) {
+    public GameDTO makeMove(@PathVariable String gameId, Move move) {
         gameService.makeMove(gameId, move);
-        return gameService.getGame(gameId);
+        Game game = gameService.getGame(gameId);
+        return GameDTO.fromGame(game);
     }
 }

@@ -16,8 +16,8 @@ const PieceImage = styled.img`
 
 const ChessPiece: React.FC<ChessPieceProps> = ({ type, color }) => {
   const getPieceImage = () => {
-    const pieceType = type.toLowerCase();
     const pieceColor = color.toLowerCase();
+    const pieceType = type.toLowerCase();
     return `/assets/pieces/${pieceColor}_${pieceType}.svg`;
   };
 
