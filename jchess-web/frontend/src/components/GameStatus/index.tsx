@@ -1,10 +1,12 @@
 import React from 'react';
 import styled from 'styled-components';
-import { PieceColor, GameStatus as GameStatusType } from '../../types/game';
+import { PieceColor } from '../../types/game';
 
-interface GameStatusProps {
+interface Props {
   currentPlayer: PieceColor;
-  status: GameStatusType;
+  isCheck: boolean;
+  isCheckmate: boolean;
+  isStalemate: boolean;
 }
 
 const StatusContainer = styled.div`
@@ -14,10 +16,11 @@ const StatusContainer = styled.div`
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
-const StatusText = styled.p`
+const StatusText = styled.p<{ isAlert?: boolean }>`
   margin: 0.5rem 0;
   font-size: 1.1rem;
-  color: #333;
+  color: ${props => props.isAlert ? '#d32f2f' : '#333'};
+  font-weight: ${props => props.isAlert ? 'bold' : 'normal'};
 `;
 
 const PlayerTurn = styled.div<{ isWhite: boolean }>`
@@ -28,13 +31,38 @@ const PlayerTurn = styled.div<{ isWhite: boolean }>`
   font-weight: bold;
 `;
 
-const GameStatus: React.FC<GameStatusProps> = ({ currentPlayer, status }) => {
+const GameStatus: React.FC<Props> = ({
+  currentPlayer,
+  isCheck,
+  isCheckmate,
+  isStalemate,
+}) => {
+  const getStatusMessage = () => {
+    if (isCheckmate) {
+      const winner = currentPlayer === 'WHITE' ? 'Black' : 'White';
+      return `Checkmate! ${winner} wins!`;
+    }
+    if (isStalemate) {
+      return 'Stalemate! The game is a draw.';
+    }
+    if (isCheck) {
+      return `${currentPlayer} is in check!`;
+    }
+    return null;
+  };
+
+  const statusMessage = getStatusMessage();
+
   return (
     <StatusContainer>
-      <StatusText>Game Status: {status}</StatusText>
       <PlayerTurn isWhite={currentPlayer === 'WHITE'}>
         Current Turn: {currentPlayer}
       </PlayerTurn>
+      {statusMessage && (
+        <StatusText isAlert={isCheck || isCheckmate}>
+          {statusMessage}
+        </StatusText>
+      )}
     </StatusContainer>
   );
 };

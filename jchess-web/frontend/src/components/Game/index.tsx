@@ -4,7 +4,7 @@ import ChessBoard from '../ChessBoard';
 import GameStatusComponent from '../GameStatus';
 import MoveHistory from '../MoveHistory';
 import { useWebSocket } from '../../hooks/useWebSocket';
-import { GameState, Board, PieceColor, GameStatus as GameStatusType } from '../../types/game';
+import { GameState, Board, PieceColor, Position } from '../../types/game';
 import { GameStateData, MoveData, WebSocketMessage } from '../../types/websocket';
 
 const GameContainer = styled.div`
@@ -30,29 +30,29 @@ interface GameProps {
   gameId: string;
 }
 
-const Game: React.FC<GameProps> = ({ gameId }) => {
-  const [gameState, setGameState] = useState<GameState>({
-    board: {},
-    currentPlayer: 'WHITE',
-    moves: [],
-    status: 'WAITING'
-  });
+const initialGameState: GameState = {
+  id: '',
+  board: Array(8).fill(null).map(() => Array(8).fill(null)),
+  currentPlayer: 'WHITE',
+  isCheck: false,
+  isCheckmate: false,
+  isStalemate: false,
+  moves: [],
+  whitePlayer: '',
+  blackPlayer: '',
+};
 
+const Game: React.FC<GameProps> = ({ gameId }) => {
+  const [gameState, setGameState] = useState<GameState>(initialGameState);
   const { sendMessage, lastMessage } = useWebSocket(gameId);
 
   useEffect(() => {
     if (lastMessage) {
       try {
-        const message = JSON.parse(lastMessage.data) as WebSocketMessage;
+        const message = JSON.parse(lastMessage.body || '') as WebSocketMessage;
         if (message.type === 'GAME_STATE') {
           const gameStateData = message.data as GameStateData;
-          setGameState(prevState => ({
-            ...prevState,
-            board: gameStateData.board as Board,
-            currentPlayer: gameStateData.currentPlayer as PieceColor,
-            moves: gameStateData.moves,
-            status: gameStateData.status as GameStatusType
-          }));
+          setGameState(gameStateData);
         }
       } catch (error) {
         console.error('Error parsing message:', error);
@@ -60,7 +60,7 @@ const Game: React.FC<GameProps> = ({ gameId }) => {
     }
   }, [lastMessage]);
 
-  const handleMove = (from: string, to: string) => {
+  const handleMove = (from: Position, to: Position) => {
     const moveData: MoveData = { from, to };
     sendMessage({
       type: 'MOVE',
@@ -74,14 +74,15 @@ const Game: React.FC<GameProps> = ({ gameId }) => {
         <ChessBoard
           board={gameState.board}
           onMove={handleMove}
-          lastMessage={lastMessage}
-          setBoard={(newBoard: Board) => setGameState(prev => ({ ...prev, board: newBoard }))}
+          currentPlayer={gameState.currentPlayer}
         />
       </GameContent>
       <SidePanel>
         <GameStatusComponent
+          isCheck={gameState.isCheck}
+          isCheckmate={gameState.isCheckmate}
+          isStalemate={gameState.isStalemate}
           currentPlayer={gameState.currentPlayer}
-          status={gameState.status}
         />
         <MoveHistory moves={gameState.moves} />
       </SidePanel>

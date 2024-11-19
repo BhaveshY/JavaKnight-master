@@ -2,73 +2,53 @@ import React, { useEffect } from 'react';
 import styled from 'styled-components';
 import Square from '../Square';
 import ChessPiece from '../ChessPiece';
-import { Board } from '../../types/game';
-import { WebSocketMessage, GameStateData, IMessage } from '../../types/websocket';
+import { Board, Position, PieceColor, Piece } from '../../types/game';
 
 const BoardContainer = styled.div`
   display: grid;
   grid-template-columns: repeat(8, 1fr);
-  width: 600px;
-  height: 600px;
+  width: 640px;
+  height: 640px;
   border: 2px solid #333;
 `;
 
-interface ChessBoardProps {
-  onMove: (from: string, to: string) => void;
+interface Props {
   board: Board;
-  lastMessage: IMessage | null;
-  setBoard: (board: Board) => void;
+  currentPlayer: PieceColor;
+  onMove: (from: Position, to: Position) => void;
 }
 
-const ChessBoard: React.FC<ChessBoardProps> = ({ onMove, board, lastMessage, setBoard }) => {
-  const [selectedSquare, setSelectedSquare] = React.useState<string | null>(null);
+const ChessBoard: React.FC<Props> = ({ board, currentPlayer, onMove }) => {
+  const [selectedSquare, setSelectedSquare] = React.useState<Position | null>(null);
 
-  useEffect(() => {
-    if (lastMessage) {
-      try {
-        const message = JSON.parse(lastMessage.data) as WebSocketMessage;
-        if (message.type === 'GAME_STATE') {
-          const gameStateData = message.data as GameStateData;
-          setBoard(gameStateData.board as Board);
-        }
-      } catch (error) {
-        console.error('Error parsing message:', error);
-      }
-    }
-  }, [lastMessage, setBoard]);
-
-  const handleSquareClick = (square: string) => {
+  const handleSquareClick = (position: Position) => {
     if (!selectedSquare) {
-      // First click - select the piece
-      if (board[square]?.piece) {
-        setSelectedSquare(square);
+      const piece = board[position.row][position.col];
+      if (piece && piece.color === currentPlayer) {
+        setSelectedSquare(position);
       }
     } else {
-      // Second click - attempt to move
-      onMove(selectedSquare, square);
+      onMove(selectedSquare, position);
       setSelectedSquare(null);
     }
   };
 
-  const renderSquare = (i: number) => {
-    const file = String.fromCharCode(97 + (i % 8)); // a-h
-    const rank = 8 - Math.floor(i / 8); // 1-8
-    const squareId = `${file}${rank}`;
-    const square = board[squareId];
-    const isSelected = selectedSquare === squareId;
-    const isLight = (Math.floor(i / 8) + (i % 8)) % 2 === 0;
+  const renderSquare = (rowIndex: number, colIndex: number, piece: Piece | null) => {
+    const position: Position = { row: rowIndex, col: colIndex };
+    const isSelected = selectedSquare?.row === rowIndex && selectedSquare?.col === colIndex;
+    const isLight = (rowIndex + colIndex) % 2 === 0;
 
     return (
       <Square
-        key={squareId}
+        key={`${rowIndex}-${colIndex}`}
         isLight={isLight}
         isSelected={isSelected}
-        onClick={() => handleSquareClick(squareId)}
+        onClick={() => handleSquareClick(position)}
       >
-        {square?.piece && (
+        {piece && (
           <ChessPiece
-            type={square.piece.type}
-            color={square.piece.color}
+            type={piece.type}
+            color={piece.color}
           />
         )}
       </Square>
@@ -77,7 +57,11 @@ const ChessBoard: React.FC<ChessBoardProps> = ({ onMove, board, lastMessage, set
 
   return (
     <BoardContainer>
-      {Array(64).fill(null).map((_, i) => renderSquare(i))}
+      {board.map((row, rowIndex) =>
+        row.map((piece, colIndex) =>
+          renderSquare(rowIndex, colIndex, piece)
+        )
+      )}
     </BoardContainer>
   );
 };

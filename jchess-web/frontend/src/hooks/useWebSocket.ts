@@ -1,11 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import SockJS from 'sockjs-client';
 import { Client, Message, Frame } from '@stomp/stompjs';
-
-interface WebSocketMessage {
-  type: string;
-  data: unknown;
-}
+import { WebSocketMessage } from '../types/websocket';
 
 export const useWebSocket = (gameId: string) => {
   const [lastMessage, setLastMessage] = useState<Message | null>(null);

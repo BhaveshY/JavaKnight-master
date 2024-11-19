@@ -1,7 +1,9 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import styled, { createGlobalStyle } from 'styled-components';
 import Game from './components/Game';
+import Home from './components/Home';
+import { PieceColor } from './types/game';
 
 const GlobalStyle = createGlobalStyle`
   body {
@@ -24,19 +26,25 @@ const AppContainer = styled.div`
   min-height: 100vh;
 `;
 
-const App: React.FC = () => {
-  // In a real app, these would come from the server or URL parameters
-  const mockGameId = 'test-game-123';
+const GameRoute: React.FC = () => {
+  const { gameId, color } = useParams<{ gameId: string; color: string }>();
+  
+  if (!gameId || !color || !['WHITE', 'BLACK'].includes(color)) {
+    return <Navigate to="/" replace />;
+  }
 
+  return <Game gameId={gameId} playerColor={color as PieceColor} />;
+};
+
+const App: React.FC = () => {
   return (
     <Router>
       <AppContainer>
         <GlobalStyle />
         <Routes>
-          <Route 
-            path="/" 
-            element={<Game gameId={mockGameId} />} 
-          />
+          <Route path="/" element={<Home />} />
+          <Route path="/game/:gameId" element={<Navigate to="/" replace />} />
+          <Route path="/game/:gameId/:color" element={<GameRoute />} />
         </Routes>
       </AppContainer>
     </Router>

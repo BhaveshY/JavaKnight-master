@@ -4,7 +4,8 @@ import ChessBoard from '../ChessBoard/ChessBoard';
 import GameStatus from '../GameStatus/GameStatus';
 import MoveHistory from '../MoveHistory/MoveHistory';
 import { useWebSocket } from '../../hooks/useWebSocket';
-import { GameState, Move } from '../../types/chess';
+import { GameState, Move, Color } from '../../types/chess';
+import { WebSocketMessage, ViewPositionData, GameStateData } from '../../types/websocket';
 
 const GameContainer = styled.div`
   display: flex;
@@ -27,7 +28,7 @@ const InfoSection = styled.div`
 
 interface Props {
   gameId: string;
-  playerColor: 'WHITE' | 'BLACK';
+  playerColor: Color;
 }
 
 const initialGameState: GameState = {
@@ -48,33 +49,39 @@ const Game: React.FC<Props> = ({ gameId, playerColor }) => {
 
   useEffect(() => {
     if (lastMessage) {
-      const newGameState = JSON.parse(lastMessage.data);
-      setGameState(newGameState);
+      try {
+        const message = JSON.parse(lastMessage.body || '');
+        if (message.type === 'GAME_STATE') {
+          const gameStateData = message.data as GameStateData;
+          setGameState(gameStateData);
+        }
+      } catch (error) {
+        console.error('Error parsing message:', error);
+      }
     }
   }, [lastMessage]);
 
   const handleMoveClick = (move: Move) => {
-    // Request the board state at this move
-    sendMessage({
+    const message: WebSocketMessage = {
       type: 'VIEW_POSITION',
       data: {
         moveIndex: gameState.moves.indexOf(move),
-      },
-    });
+      } as ViewPositionData,
+    };
+    sendMessage(message);
   };
 
   return (
     <GameContainer>
       <BoardSection>
-        <GameStatus gameState={gameState} />
-        <ChessBoard 
+        <ChessBoard
           gameId={gameId}
           playerColor={playerColor}
         />
       </BoardSection>
-      
       <InfoSection>
-        <MoveHistory 
+        <GameStatus gameState={gameState} />
+        <MoveHistory
           moves={gameState.moves}
           onMoveClick={handleMoveClick}
         />

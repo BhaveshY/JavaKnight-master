@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import Square from '../Square/Square';
 import { useWebSocket } from '../../hooks/useWebSocket';
-import { PieceType, Color, Position } from '../../types/chess';
+import { Position, Color, GameState } from '../../types/chess';
+import { WebSocketMessage, GameStateData } from '../../types/websocket';
 
 const BoardContainer = styled.div`
   display: grid;
@@ -12,42 +13,42 @@ const BoardContainer = styled.div`
   border: 2px solid #333;
 `;
 
-interface ChessBoardProps {
+interface Props {
   gameId: string;
   playerColor: Color;
 }
 
-const ChessBoard: React.FC<ChessBoardProps> = ({ gameId, playerColor }) => {
+const ChessBoard: React.FC<Props> = ({ gameId, playerColor }) => {
   const [selectedSquare, setSelectedSquare] = useState<Position | null>(null);
-  const [board, setBoard] = useState<Array<Array<{ type: PieceType; color: Color } | null>>>(
-    Array(8).fill(null).map(() => Array(8).fill(null))
-  );
-  
+  const [board, setBoard] = useState<GameState['board']>(Array(8).fill(null).map(() => Array(8).fill(null)));
   const { sendMessage, lastMessage } = useWebSocket(gameId);
 
   useEffect(() => {
     if (lastMessage) {
-      const gameState = JSON.parse(lastMessage.data);
-      setBoard(gameState.board);
+      try {
+        const message = JSON.parse(lastMessage.body || '');
+        if (message.type === 'GAME_STATE') {
+          const gameStateData = message.data as GameStateData;
+          setBoard(gameStateData.board);
+        }
+      } catch (error) {
+        console.error('Error parsing message:', error);
+      }
     }
   }, [lastMessage]);
 
   const handleSquareClick = (position: Position) => {
     if (!selectedSquare) {
-      // First click - select piece
-      const piece = board[position.row][position.col];
-      if (piece && piece.color === playerColor) {
-        setSelectedSquare(position);
-      }
+      setSelectedSquare(position);
     } else {
-      // Second click - attempt move
-      sendMessage({
+      const message: WebSocketMessage = {
         type: 'MOVE',
         data: {
           from: selectedSquare,
           to: position,
         },
-      });
+      };
+      sendMessage(message);
       setSelectedSquare(null);
     }
   };
